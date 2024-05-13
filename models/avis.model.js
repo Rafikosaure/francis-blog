@@ -1,12 +1,23 @@
-import mongoose from "mongoose";
-
-const AvisSchema = mongoose.Schema(
-  {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    article: { type: mongoose.Schema.Types.ObjectId, ref: 'Article', required: true },
-    rating: { type: Number, required: true },
-    comment: { type: String, required: true },
-    date: { type: Date, default: Date.now }
-  });
-
-export default mongoose.model('Avis', AvisSchema);
+// Je recup ma connexion dans la variable sequilize
+// et mes types de champs SQL dans DataTypes
+export default (connection, DataTypes) => {
+  connection.define(
+      'Avis',
+      {
+          // Model attributes are defined here
+          comment: {
+              type: DataTypes.TEXT,
+              allowNull: false,
+          },
+          rating: {
+              type: DataTypes.INTEGER,
+              allowNull: false
+          },
+          date: {
+              type: DataTypes.DATE,
+              defaultValue: DataTypes.NOW,
+          }
+      },
+      { timestamps: true }
+  );
+}
