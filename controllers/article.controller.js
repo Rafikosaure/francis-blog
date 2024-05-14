@@ -1,9 +1,11 @@
-import Article from '../models/article.model.js';
+import { Article, User } from "../models/index.js"
 
 export const add = async (req, res) => {
     try {
+        const user = await User.findByPk(req.user.id)
         // On crée un nouvel article avec les informations reçues dans le corps de la requête
-        const article = await Article.create(req.body)
+        // const article = await Article.create(req.body)
+        const article = await user.createArticle(req.body)
         // On renvoie le nouvel article avec un statut 201
         res.status(201).json(article)
     } catch (err) {
@@ -15,7 +17,7 @@ export const add = async (req, res) => {
 export const getAll = async (req, res) => {
     try {
         // On récupère tous les articles
-        const articles = await Article.find()
+        const articles = await Article.findAll()
         // On renvoie les articles avec un statut 200
         res.status(200).json(articles)
     } catch (err) {
@@ -28,7 +30,7 @@ export const getById = async (req, res) => {
     try {
         const id = req.params.id;
         // On récupère l'article par son id
-        const article = await Article.findById(id)
+        const article = await Article.findByPk(id)
         // On renvoie l'article avec un statut 200
         res.status(200).json(article)
     } catch (err) {
@@ -40,11 +42,18 @@ export const getById = async (req, res) => {
 export const updateById = async (req, res) => {
     try {
         // On récupère l'article par son id
-        const getArticle = await Article.findById(req.params.id)
+        const article = await Article.findByPk(req.params.id)
         // On vérifie que l'utilisateur qui fait la requête est bien l'utilisateur qui a créé l'article
-        if (getArticle.user.toString() === req.user.id) {
+        if (article.UserId === req.user.id) {
             // On met à jour l'article avec les nouvelles informations reçues dans le corps de la requête
-            const article = await Article.findByIdAndUpdate(req.params.id, req.body, { new: true })
+            await article.update(req.body)
+
+            // Pour l'update quand on n'a pas encore l'article :
+            // await Article.update(req.body, {
+            //     where: {
+            //         id: req.params.id
+            //     }
+            // })
             // On renvoie l'article mis à jour avec un statut 200
             return res.status(200).json(article)
         } else {
@@ -60,11 +69,11 @@ export const updateById = async (req, res) => {
 export const deleteById = async (req, res) => {
     try {
         // On récupère l'article par son id
-        const getArticle = await Article.findById(req.params.id)
+        const article = await Article.findByPk(req.params.id)
         // On vérifie que l'utilisateur qui fait la requête est bien l'utilisateur qui a créé l'article
-        if (getArticle.user.toString() === req.user.id) {
+        if (article.UserId === req.user.id) {
             // On supprime l'article
-            const article = await Article.findByIdAndDelete(req.params.id)
+            await article.destroy()
             // On renvoie un message de confirmation avec un statut 200
             res.status(200).json("Article deleted ! ")
         } else {
@@ -80,7 +89,9 @@ export const deleteById = async (req, res) => {
 export const getByAsc = async (req, res) => {
     try {
         // On récupère tous les articles triés par prix croissant
-        const articles = await Article.find().sort('price')
+        const articles = await Article.findAll({ order: [
+            ['price', 'ASC']
+        ]})
         // On renvoie les articles avec un statut 200
         res.status(200).json(articles)
     } catch (err) {
@@ -92,7 +103,10 @@ export const getByAsc = async (req, res) => {
 export const getByDesc = async (req, res) => {
     try {
         // On récupère tous les articles triés par prix décroissant
-        const articles = await Article.find().sort('-price')
+        // const articles = await Article.find().sort('-price')
+        const articles = await Article.findAll({ order: [
+            ['price', 'DESC']
+        ]})
         // On renvoie les articles avec un statut 200
         res.status(200).json(articles)
     } catch (err) {
@@ -104,10 +118,12 @@ export const getByDesc = async (req, res) => {
 export const getByUser = async (req, res) => {
     try {
         // On récupère tous les articles de l'utilisateur qui fait la requête
-        const articles = await Article.find({ user: req.user.id })
+        // const articles = await Article.findAll({ where: { UserId: req.user.id } })
+        const user = await User.findByPk(req.user.id, { include: "articles" })
         // On renvoie les articles avec un statut 200
-        res.status(200).json(articles)
+        res.status(200).json(user.articles)
     } catch (err) {
+        console.log(err)
         // En cas d'erreur, on renvoie un statut 500 avec le message d'erreur
         res.status(500).json({ error: "Erreur." })
     }
@@ -117,7 +133,9 @@ export const getReview = async (req, res) => {
     try {
         // On récupère tous les avis de l'article par son id
         // "populate" est utilisé pour créer une sorte de jointure entre les collections de données MongoDB
-        const article = await Article.findById(req.params.id).populate('avis')
+        const article = await Article.findByPk(req.params.id, {
+            include: 'avis'
+        })
         // On renvoie les avis avec un statut 200
         res.status(200).json(article.avis)
     } catch (error) {
